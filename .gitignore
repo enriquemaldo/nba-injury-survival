@@ -1,0 +1,8 @@
+data/raw/
+data/interim/*
+!data/interim/manual_name_map.csv
+data/processed/
+__pycache__/
+.venv/
+*.pyc
+.DS_Store

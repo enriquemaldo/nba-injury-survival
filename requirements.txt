@@ -1,0 +1,8 @@
+nba_api>=1.5
+pandas>=2.0
+requests>=2.31
+beautifulsoup4>=4.12
+rapidfuzz>=3.0   # optional; falls back to difflib if missing
+pytest>=8.0
+matplotlib>=3.7
+tzdata>=2024.1   # time-zone database fallback for zoneinfo
