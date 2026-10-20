@@ -1,8 +1,13 @@
 nba_api>=1.5
 pandas>=2.0
+numpy>=1.24
+scipy>=1.10
+scikit-learn>=1.3
 requests>=2.31
 beautifulsoup4>=4.12
-rapidfuzz>=3.0   # optional; falls back to difflib if missing
-pytest>=8.0
 matplotlib>=3.7
 tzdata>=2024.1   # time-zone database fallback for zoneinfo
+rapidfuzz>=3.0   # optional; name matching falls back to difflib if missing
+xgboost>=2.0     # optional; baselines fall back to scikit-learn gradient boosting if missing
+lifelines>=0.27  # optional; only used by a test that cross-checks the Cox model
+pytest>=8.0
