@@ -2,7 +2,7 @@
 
 Training: 2016-17–2021-22 (160,783 landmarks, 5,425 event landmarks). Validation: 27,740 landmarks, 1,472 event landmarks. **The test season (2023-24) was not used.**
 
-Features: 42 (55 model columns after missing indicators). Gradient boosting: scikit-learn HistGradientBoosting (xgboost not installed). Hyperparameters fixed in advance (no tuning).
+Features: 42 (50 model columns after missing indicators). Gradient boosting: XGBoost. Hyperparameters fixed in advance (no tuning).
 
 ## Main results
 
@@ -11,11 +11,11 @@ C-index is the primary metric (0.5 = random ranking). AUC and Brier are for inju
 | model | c_index | auc_14d | brier_14d | mean_predicted_14d | observed_14d | c_index_95ci | auc_14d_95ci |
 |---|---|---|---|---|---|---|---|
 | Logistic | 0.758 | 0.772 | 0.037 | 0.042 | 0.039 | 0.712–0.794 | 0.726–0.808 |
-| GBM | 0.715 | 0.725 | 0.038 | 0.041 | 0.039 | 0.661–0.768 | 0.671–0.780 |
+| GBM | 0.734 | 0.744 | 0.037 | 0.039 | 0.039 | 0.681–0.783 | 0.695–0.790 |
 | Cox | 0.764 | 0.776 | 0.037 | 0.036 | 0.039 | 0.725–0.799 | 0.736–0.812 |
 | Cox: injury history only | 0.759 | 0.769 | 0.037 | 0.037 | 0.039 | 0.720–0.796 | 0.731–0.808 |
 | Cox: minutes only (EWMA) | 0.670 | 0.685 | 0.037 | 0.022 | 0.039 | 0.622–0.716 | 0.636–0.733 |
-| Cox: workload + schedule/travel | 0.720 | 0.729 | 0.037 | 0.031 | 0.039 | 0.681–0.761 | 0.691–0.772 |
+| Cox: workload + schedule/travel | 0.720 | 0.729 | 0.037 | 0.031 | 0.039 | 0.682–0.761 | 0.691–0.772 |
 | Cox (season-stratified) | 0.763 | 0.775 |  |  | 0.039 | 0.723–0.798 | 0.734–0.812 |
 
 ## What drives the ranking
@@ -31,15 +31,15 @@ C-index is the primary metric (0.5 = random ranking). AUC and Brier are for inju
 | run | train_seasons | model | c_index | auc_14d | brier_14d |
 |---|---|---|---|---|---|
 | main | 2016-17..2021-22 | Logistic | 0.758 | 0.772 | 0.037 |
-| main | 2016-17..2021-22 | GBM | 0.715 | 0.725 | 0.038 |
+| main | 2016-17..2021-22 | GBM | 0.734 | 0.744 | 0.037 |
 | main | 2016-17..2021-22 | Cox | 0.764 | 0.776 | 0.037 |
 | main | 2016-17..2021-22 | Cox (season-stratified) | 0.763 | 0.775 |  |
 | from_2018_19 | 2018-19..2021-22 | Logistic | 0.758 | 0.772 | 0.038 |
-| from_2018_19 | 2018-19..2021-22 | GBM | 0.728 | 0.738 | 0.037 |
+| from_2018_19 | 2018-19..2021-22 | GBM | 0.740 | 0.750 | 0.037 |
 | from_2018_19 | 2018-19..2021-22 | Cox | 0.766 | 0.777 | 0.037 |
-| excl_2019_21 | 2016-17..2021-22 (excl. 2019-21) | Logistic | 0.751 | 0.767 | 0.037 |
-| excl_2019_21 | 2016-17..2021-22 (excl. 2019-21) | GBM | 0.726 | 0.741 | 0.038 |
-| excl_2019_21 | 2016-17..2021-22 (excl. 2019-21) | Cox | 0.759 | 0.772 | 0.037 |
+| excl_2019_21 | 2016-17..2021-22 (excl. 2019-21) | Logistic | 0.752 | 0.767 | 0.037 |
+| excl_2019_21 | 2016-17..2021-22 (excl. 2019-21) | GBM | 0.738 | 0.752 | 0.037 |
+| excl_2019_21 | 2016-17..2021-22 (excl. 2019-21) | Cox | 0.758 | 0.772 | 0.037 |
 
 ## Cox model: strongest associations (hazard ratio per 1 SD, ranked by |z|)
 
@@ -47,21 +47,21 @@ Robust 95% CIs clustered by player. Workload features are strongly correlated wi
 
 | feature | hr | hr_lo | hr_hi | p | hr_stratified |
 |---|---|---|---|---|---|
-| height_in_missing | 0.983 | 0.979 | 0.987 | <0.001 | 0.983 |
-| weight_lb_missing | 0.983 | 0.979 | 0.987 | <0.001 | 0.983 |
-| age_missing | 0.983 | 0.979 | 0.987 | <0.001 | 0.983 |
 | prior_target_injuries | 1.303 | 1.196 | 1.419 | <0.001 | 1.304 |
-| is_playoffs | 0.795 | 0.692 | 0.915 | 0.001 | 0.786 |
+| is_playoffs | 0.795 | 0.691 | 0.915 | 0.001 | 0.785 |
 | days_since_last_injury_missing | 0.846 | 0.735 | 0.973 | 0.019 | 0.850 |
+| ewma_min_long_missing | 0.882 | 0.792 | 0.982 | 0.022 | 0.886 |
+| ewma_min_short_missing | 0.882 | 0.792 | 0.982 | 0.022 | 0.886 |
 | consecutive_games | 0.864 | 0.752 | 0.993 | 0.039 | 0.861 |
-| ewma_min_short_missing | 0.883 | 0.784 | 0.994 | 0.040 | 0.882 |
-| ewma_min_long_missing | 0.883 | 0.784 | 0.994 | 0.040 | 0.882 |
 | prior_lower_leg_injuries | 1.211 | 0.995 | 1.473 | 0.056 | 1.214 |
-| ewma_ratio_min_missing | 1.226 | 0.989 | 1.521 | 0.063 | 1.224 |
-| days_rest | 1.026 | 0.998 | 1.054 | 0.065 | 1.019 |
+| days_rest | 1.026 | 0.999 | 1.054 | 0.059 | 1.019 |
+| ewma_ratio_min_missing | 1.227 | 0.992 | 1.516 | 0.059 | 1.221 |
 | usage_per_min_28d | 0.886 | 0.770 | 1.019 | 0.089 | 0.885 |
-| ewma_min_long | 1.539 | 0.874 | 2.711 | 0.136 | 1.543 |
-| years_since_draft_missing | 0.916 | 0.814 | 1.030 | 0.142 | 0.914 |
+| ewma_min_long | 1.539 | 0.873 | 2.712 | 0.136 | 1.543 |
+| years_since_draft_missing | 0.915 | 0.814 | 1.030 | 0.142 | 0.914 |
+| ewma_ratio_min | 1.120 | 0.951 | 1.319 | 0.173 | 1.122 |
+| km_last_14d | 1.054 | 0.974 | 1.141 | 0.190 | 1.055 |
+| games_prior_total | 0.791 | 0.545 | 1.149 | 0.219 | 0.801 |
 
 ![Cox effects](fig_cox_forest.png)
 
@@ -91,6 +91,6 @@ Kaplan–Meier by tertile of Cox predicted risk (log-rank χ² = 1087.4, df 2). 
 ## Notes
 
 - Ties: at most 0.37% of a risk set is injured on the same day, so Breslow's tie method is accurate here.
-- Cox converged in 11 Newton iterations.
+- Cox converged in 6 Newton iterations.
 - Logistic/GBM are trained only on landmarks with a known 14-day outcome, so late-season landmarks (cut off by season end) are underrepresented in their training data.
 - Hazard ratios describe associations in this observational data, not causes.

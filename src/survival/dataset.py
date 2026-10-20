@@ -87,7 +87,7 @@ def outcomes(lm: pd.DataFrame, ep: pd.DataFrame, is_target: pd.Series, label_end
     end = ends.min(axis=1)
     end_reason = ends.idxmin(axis=1)
     hit = x.onset_date.notna() & (x.onset_date <= end)
-    event = hit & x.is_target.fillna(False).astype(bool)
+    event = hit & x.is_target.eq(True)        # NaN (no episode) -> False
     stop = np.where(hit, x.onset_date, end)
     reason = np.where(event, "target_event", np.where(hit, "other_injury", end_reason))
     days = (pd.Series(pd.to_datetime(stop), index=x.index) - x.GAME_DATE).dt.days

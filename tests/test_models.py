@@ -153,6 +153,17 @@ def test_cox_matches_lifelines_if_installed():
     assert np.allclose(m.se_, lf.standard_errors_.to_numpy(), rtol=1e-3)
 
 
+def test_preprocessor_skips_rare_missing_indicators():
+    from src.models.baselines import Preprocessor
+    rng = np.random.default_rng(0)
+    df = pd.DataFrame({"a": rng.normal(size=1000), "b": rng.normal(size=1000), "c": rng.normal(size=1000)})
+    df.loc[:4, "a"] = np.nan                     # 0.5% missing -> imputed only
+    df.loc[:199, "b"] = np.nan                   # 20% missing -> imputed + indicator
+    pre = Preprocessor().fit(df, ["a", "b", "c"])
+    X, names = pre.transform(df)
+    assert names == ["a", "b", "c", "b_missing"] and not np.isnan(X).any()
+
+
 # ---------------------------------------------------------- dataset logic --
 def test_outcomes_rules():
     from src.survival.dataset import outcomes

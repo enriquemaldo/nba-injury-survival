@@ -57,12 +57,16 @@ plt.rcParams.update({"font.size": 10, "axes.edgecolor": INK2, "axes.labelcolor":
 
 # ------------------------------------------------------------ preprocessing --
 class Preprocessor:
-    """Median imputation + missing indicators + clipping + standardization, fit on training rows."""
+    """Median imputation + missing indicators + clipping + standardization, fit on training rows.
+    A missing-indicator column is added only when at least MIN_MISSING_SHARE of training rows
+    are missing; rarer gaps are just imputed (a near-constant indicator gives unstable,
+    falsely precise coefficients)."""
+    MIN_MISSING_SHARE = 0.01
 
     def fit(self, df, features):
         X = df[features].astype(float)
         self.features = features
-        self.missing_cols = [c for c in features if X[c].isna().any()]
+        self.missing_cols = [c for c in features if X[c].isna().mean() >= self.MIN_MISSING_SHARE]
         self.median = X.median()
         self.lo, self.hi = X.quantile(0.005), X.quantile(0.995)
         Z = self._raw(df)
@@ -84,14 +88,16 @@ class Preprocessor:
 def make_gbm():
     try:
         from xgboost import XGBClassifier
-        return XGBClassifier(n_estimators=300, max_depth=3, learning_rate=0.05, subsample=0.8,
-                             colsample_bytree=0.8, min_child_weight=5, eval_metric="logloss",
-                             n_jobs=-1, random_state=0), "XGBoost"
-    except Exception:  # xgboost missing (or libomp missing on macOS)
+    except Exception as e:  # not installed, or (macOS) libomp missing
+        print(f"  xgboost unavailable ({type(e).__name__}: {str(e).splitlines()[0][:150]})")
+        print("  -> using scikit-learn gradient boosting. On macOS fix with: brew install libomp")
         from sklearn.ensemble import HistGradientBoostingClassifier
         return HistGradientBoostingClassifier(max_depth=3, learning_rate=0.05, max_iter=300,
                                               l2_regularization=1.0, random_state=0), \
-            "scikit-learn HistGradientBoosting (xgboost not installed)"
+            "scikit-learn HistGradientBoosting (xgboost unavailable)"
+    return XGBClassifier(n_estimators=300, max_depth=3, learning_rate=0.05, subsample=0.8,
+                             colsample_bytree=0.8, min_child_weight=5, eval_metric="logloss",
+                             n_jobs=-1, random_state=0), "XGBoost"
 
 
 # ------------------------------------------------------------------- run ----
