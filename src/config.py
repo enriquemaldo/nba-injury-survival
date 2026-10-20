@@ -21,6 +21,20 @@ TEST_SEASONS = [SEASONS[7]]          # 2023-24
 SUPPLEMENTARY_SEASONS = SEASONS[8:]  # 2024-25, 2025-26
 
 
+# --- Phase 2: survival dataset and baselines -------------------------------
+HORIZON_DAYS = 30        # follow-up after each landmark is capped at 30 days
+CLASSIF_DAYS = 14        # fixed horizon for the classification baselines / AUC
+# Seasons whose source records many injured-list placements without a reason
+# (see the reporting-change figure); flagged so models can adjust for it.
+EARLY_ERA_SEASONS = ["2016-17", "2017-18"]
+# Sensitivity analyses (validation season unchanged):
+SENSITIVITY_RUNS = {
+    "main": TRAIN_SEASONS,
+    "from_2018_19": SEASONS[2:6],                                    # drop early reporting era
+    "excl_2019_21": [s for s in TRAIN_SEASONS if s not in ("2019-20", "2020-21")],  # proposal
+}
+
+
 def split_of(season: str) -> str:
     if season in TRAIN_SEASONS:
         return "train"

@@ -5,10 +5,9 @@ ECE 5904 · Enrique Maldonado · Virginia Tech
 Pipeline for estimating NBA non-contact soft-tissue injury hazard from public
 game, schedule and injury data (Transformer + DeepSurv, SHAP explanations).
 
-**Current phase: 1 — dataset construction and feasibility.** This phase builds
-the injury labels, checks whether there are enough events to support the
-planned models, and builds the travel and schedule features. No model has been
-trained and the test season is untouched.
+**Status.** Phase 1 (injury labels, feasibility, travel features) and Phase 2
+(landmark survival dataset, workload features, baseline models) are complete.
+Models are evaluated on the validation season only; the test season is untouched.
 
 ```
 src/
@@ -20,11 +19,18 @@ src/
   labels/player_match.py     transaction names -> nba_api PLAYER_ID
   labels/episodes.py         transactions -> injury episodes
   labels/build.py            runs taxonomy + matching + episodes
+  ingest/bio.py              player age, height, weight, draft year by season
   features/travel.py         venue per game + travel/schedule features
+  features/workload.py       pre-game workload, scheduling and injury-history features
+  survival/dataset.py        landmark survival dataset (time-to-event, censoring) + report
+  models/coxph.py            Cox proportional-hazards model (strata, robust SEs)
+  models/metrics.py          C-index, AUC/Brier at 14 days, calibration, Kaplan-Meier
+  models/baselines.py        logistic regression, XGBoost, Cox + sensitivity runs
   feasibility.py             per-season event counts and summary report
   evidence.py                figures, PDF summary, label-audit sheet
-tests/test_pipeline.py       offline tests on synthetic data
+tests/                       offline tests (labels, travel, Cox model, metrics, leakage)
 reports/update1/             Update 1 reports, figures and label-audit results
+reports/update2/             Update 2: survival dataset report and baseline results
 reference/arenas.csv         season-specific home arenas (hand-verified)
 reference/neutral_sites.csv  bubble, international and NBA Cup Las Vegas games
 ```
@@ -147,6 +153,59 @@ and `label_audit.csv`. To audit, mark each row `1` (tier correct) or `0` in the
 `correct` column (with the right tier in `correct_tier`), save as CSV, and run
 `--score`.
 
+### 7. Player bio (age, height, weight)
+
+```bash
+python -m src.ingest.bio
+```
+
+One request per season (`LeagueDashPlayerBioStats`), cached in `data/raw/bio/`.
+If it fails, the next steps still run without these four features.
+
+### 8. Landmark survival dataset
+
+```bash
+python -m src.survival.dataset
+```
+
+One row per player-game (**pre-game landmark**: features use only earlier
+games). Follow-up lasts up to 30 days and ends at the first of: the next
+target injury (event), any other injury (censored), the team's season end,
+or the end of the injury labels. Injuries are dated to the player's last game
+before the injured-list placement when it is within 14 days (the transaction
+usually lags the injury by ~2 days). Also stores `y14` (target injury within
+14 days) for the classification baselines, and strict/broad event variants.
+Writes `data/processed/survival/landmarks.csv.gz` and `dataset_report.md`
+(the descriptive analysis from proposal section 7).
+
+Features (all leakage-safe; tested): minutes and possessions used over the
+last 7/14/28 days, games in the last 3/7/14 days, back-to-back appearances,
+EWMA minutes (short/long) and acute-to-chronic ratios, consecutive games,
+team games missed, season-to-date and since-2016 load, prior injuries,
+days since last injury, rest, travel, time-zone change, home/neutral,
+playoffs, age, height, weight, years since draft, and an early-reporting-era flag.
+
+### 9. Baseline models
+
+```bash
+python -m src.models.baselines
+```
+
+Logistic regression and XGBoost (14-day injury classification) and a Cox
+model (time-to-event, standard errors clustered by player, adjusted for the
+early reporting era, plus a season-stratified refit). Trained on 2016-17 to
+2021-22, evaluated on 2022-23: C-index, AUC and Brier at 14 days,
+calibration, Kaplan-Meier risk groups, player-bootstrap 95% CIs, and
+reference models using one feature family each. Repeated for two
+sensitivity analyses (train from 2018-19; exclude 2019-20 and 2020-21).
+Outputs in `data/processed/models/`.
+
+`--test` evaluates the sealed test season. Use it **once, at the end of the
+project**, after every model choice is final.
+
+If `xgboost` is not installed (on macOS it may also need `brew install libomp`),
+scikit-learn's gradient-boosted trees are used instead and the report says so.
+
 ---
 
 ## Label definitions
@@ -176,14 +235,14 @@ The primary event is a **time-loss** proxy-tier episode (`games_missed ≥ 1`).
 Reason-less injured-list placements fall from ~340-420 per season in 2016-18
 to almost none by 2023-24, while proxy events rise. Early seasons appear to
 record many injuries without a reason, so the trend reflects record-keeping
-rather than injury risk. Planned handling: a season-stratified Cox baseline
-(or season covariate) and a sensitivity analysis trained on 2018-19 onward.
+rather than injury risk. Handling: an early-reporting-era indicator in every
+model, a season-stratified Cox refit, and a sensitivity analysis trained on
+2018-19 onward.
 
 ## Next steps
 
-- Landmark survival table (one prediction point per player-game)
-- Workload, EWMA and acute-to-chronic features, computed chronologically
-  (travel and schedule features are done)
-- Baselines (logistic regression, XGBoost, Cox) → DeepSurv →
-  Transformer + DeepSurv → SHAP → Streamlit dashboard
+- DeepSurv (tabular) → Transformer + DeepSurv (game sequences)
+- Within-player analysis: does recent workload predict *when* a player gets
+  hurt? (The baselines' C-index is driven mostly by *which* players get hurt.)
+- Feature-family ablations, SHAP attributions, Streamlit dashboard
 - Supplementary labels for 2024-26 from official NBA injury reports
