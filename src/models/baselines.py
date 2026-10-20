@@ -275,6 +275,11 @@ def main():
 
     res = pd.concat(results, ignore_index=True)
     res.to_csv(OUT / "baseline_results.csv", index=False)
+    pd.Series({"gbm": gbm_name, "train_seasons": f"{main_train.SEASON.min()}..{main_train.SEASON.max()}",
+               "train_landmarks": len(main_train), "train_event_landmarks": int(main_train.event.sum()),
+               "val_landmarks": len(val), "val_event_landmarks": int(val.event.sum()),
+               "players": int(lm.PLAYER_ID.nunique()), "landmarks": len(lm), "features": len(main_feats)}
+              ).to_json(OUT / "run_info.json")
 
     # Main-run details: Cox hazard ratios, calibration, KM
     cox = main_models["Cox"][1]
