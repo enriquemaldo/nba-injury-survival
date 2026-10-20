@@ -206,6 +206,16 @@ project**, after every model choice is final.
 If `xgboost` is not installed (on macOS it may also need `brew install libomp`),
 scikit-learn's gradient-boosted trees are used instead and the report says so.
 
+### 10. Update 2 evidence pack
+
+```bash
+python -m src.models.evidence
+```
+
+Writes `fig_cindex.png` (every model's C-index with 95% CI) and
+`evidence_summary.pdf` (key numbers + all Update 2 figures) to
+`data/processed/models/`.
+
 ---
 
 ## Label definitions
