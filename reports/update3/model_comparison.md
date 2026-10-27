@@ -60,6 +60,10 @@ Neural rows use the seed ensemble (average standardized log-risk over seeds); `c
 | deepsurv_no_bio | 1 | 13 | 0.733 | 0.760 | 0.773 | 0.036 |
 | deepsurv_no_bio | 2 | 6 | 0.752 | 0.775 | 0.784 | 0.036 |
 
+![Within-player timing](fig_timing.png)
+
+![Ablations: Cox and DeepSurv](fig_ablations_cox_deepsurv.png)
+
 ## See also
 
 - `within_player.md`: does recent workload predict *when* a player is injured?
