@@ -5,8 +5,10 @@ ECE 5904 · Enrique Maldonado · Virginia Tech
 Pipeline for estimating NBA non-contact soft-tissue injury hazard from public
 game, schedule and injury data (Transformer + DeepSurv, SHAP explanations).
 
-**Status.** Phase 1 (injury labels, feasibility, travel features) and Phase 2
-(landmark survival dataset, workload features, baseline models) are complete.
+**Status.** Phase 1 (injury labels, feasibility, travel features), Phase 2
+(landmark survival dataset, workload features, baseline models) and Phase 3
+(within-player timing analysis, ablations, DeepSurv, Transformer + DeepSurv)
+are complete.
 Models are evaluated on the validation season only; the test season is untouched.
 
 ```
@@ -26,11 +28,17 @@ src/
   models/coxph.py            Cox proportional-hazards model (strata, robust SEs)
   models/metrics.py          C-index, AUC/Brier at 14 days, calibration, Kaplan-Meier
   models/baselines.py        logistic regression, XGBoost, Cox + sensitivity runs
+  analysis/within_player.py  does recent workload predict WHEN a player is injured?
+  analysis/ablations.py      Cox feature-family ablations (paired CIs)
+  sequence/build.py          previous-20-game sequences for the Transformer
+  models/neural.py           DeepSurv and Transformer + DeepSurv (PyTorch)
+  models/compare.py          all models compared + Update 3 evidence pack
   feasibility.py             per-season event counts and summary report
   evidence.py                figures, PDF summary, label-audit sheet
 tests/                       offline tests (labels, travel, Cox model, metrics, leakage)
 reports/update1/             Update 1 reports, figures and label-audit results
 reports/update2/             Update 2: survival dataset report and baseline results
+reports/update3/             Update 3: neural models, timing analysis, ablations
 reference/arenas.csv         season-specific home arenas (hand-verified)
 reference/neutral_sites.csv  bubble, international and NBA Cup Las Vegas games
 ```
@@ -216,6 +224,50 @@ Writes `fig_cindex.png` (every model's C-index with 95% CI) and
 `evidence_summary.pdf` (key numbers + all Update 2 figures) to
 `data/processed/models/`.
 
+### 11. Within-player timing analysis and ablations
+
+```bash
+python -m src.analysis.within_player
+python -m src.analysis.ablations
+```
+
+`within_player` fits a Cox model stratified by player-season, so estimates
+reflect game-to-game changes within the same player and season (stable traits
+such as injury history cancel out). Features are fixed in advance; a
+sensitivity check drops each player's first 10 games after any injury.
+`ablations` refits the Cox model without each feature family and reports the
+drop in validation C-index with paired player-bootstrap CIs.
+Outputs in `data/processed/analysis/`.
+
+### 12. Neural survival models
+
+```bash
+python -m src.sequence.build            # previous-20-game sequences (~15 s)
+python -m src.models.neural --smoke     # ~1 min end-to-end check; run this first
+python -m src.models.neural             # all runs, 3 seeds each (~45-60 min on a laptop CPU)
+```
+
+DeepSurv (MLP on the tabular features) and Transformer + DeepSurv (previous
+games -> Transformer encoder with a [CLS] token -> combined with tabular
+features -> risk), both trained with the Cox partial likelihood. Runs: DeepSurv;
+Transformer with 20 games and all features; Transformer without the
+aggregated workload features (sequence vs. hand-made aggregates); 5 and 10
+games (sequence length); DeepSurv without each feature family. Early stopping
+uses 10% of training players held out; the validation season is used only for
+evaluation and the test season is untouched. Run a subset with e.g.
+`--runs deepsurv tf_full --seeds 1`; `--device mps` uses the Apple GPU.
+Trained weights are saved for the SHAP phase.
+
+### 13. Compare everything (Update 3 evidence)
+
+```bash
+python -m src.models.compare
+```
+
+All baselines and neural models on the validation season, with paired
+player-bootstrap CIs against the Cox baseline, the DeepSurv ablations, and
+`evidence_summary.pdf`. Outputs in `data/processed/update3/`.
+
 ---
 
 ## Label definitions
@@ -251,8 +303,7 @@ model, a season-stratified Cox refit, and a sensitivity analysis trained on
 
 ## Next steps
 
-- DeepSurv (tabular) → Transformer + DeepSurv (game sequences)
-- Within-player analysis: does recent workload predict *when* a player gets
-  hurt? (The baselines' C-index is driven mostly by *which* players get hurt.)
-- Feature-family ablations, SHAP attributions, Streamlit dashboard
+- SHAP attributions for the Cox and Transformer models (temporal heatmaps)
+- Final model choice, then a single evaluation on the sealed test season
+- Streamlit dashboard
 - Supplementary labels for 2024-26 from official NBA injury reports
