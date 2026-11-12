@@ -50,6 +50,23 @@ def test_splits_hold_out_whole_players():
     assert 0.05 < len(inner) / (len(fit) + len(inner)) < 0.2
 
 
+def test_final_splits_use_train_plus_val_and_score_test():
+    rng = np.random.default_rng(2)
+    n = 4000
+    data = {"season": rng.choice(["2018-19", "2022-23", "2023-24"], n, p=[.6, .25, .15]),
+            "player_id": rng.integers(0, 300, n)}
+    data["split"] = np.where(data["season"] == "2022-23", "val", np.where(data["season"] == "2023-24", "test", "train"))
+    test = data["split"] == "test"
+    fit, inner, ev = splits(data, 0, train_seasons=["2018-19", "2022-23"], eval_mask=test)
+    assert set(data["season"][np.r_[fit, inner]]) == {"2018-19", "2022-23"}
+    assert set(data["split"][ev]) == {"test"} and len(ev) == test.sum()
+    try:                                     # scoring rows that were trained on must fail
+        splits(data, 0, train_seasons=["2018-19", "2022-23"], eval_mask=data["split"] == "val")
+        raise AssertionError("overlap not detected")
+    except ValueError:
+        pass
+
+
 def test_static_columns_drop_family():
     data = {"static_family": np.array(["workload", "history", "workload", "bio"])}
     assert static_columns(data, ["workload"]).tolist() == [1, 3]

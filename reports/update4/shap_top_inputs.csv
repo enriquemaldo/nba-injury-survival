@@ -1,0 +1,65 @@
+input,name,family,mean_abs
+Prior lower-leg non-contact injuries,prior_target_injuries,history,0.23333357274532318
+Prior lower-leg injuries (any),prior_lower_leg_injuries,history,0.1349385529756546
+Last 5 games: minutes,seq:MIN,workload_seq,0.13286027312278748
+Prior injuries (any),prior_any_injuries,history,0.129989355802536
+Days since last injury (missing),days_since_last_injury_missing,history,0.08547690510749817
+Consecutive games played,consecutive_games,workload,0.06980081647634506
+Last 5 games: possessions used,seq:poss,workload_seq,0.06851056218147278
+Last 5 games: fouls,seq:PF,workload_seq,0.06354828178882599
+Height (in),height_in,bio,0.06339611858129501
+Career minutes (in data),min_prior_total,workload,0.05546368286013603
+Years since draft (missing),years_since_draft_missing,bio,0.05252424255013466
+Minutes per game (~28 games),ewma_min_long,workload,0.05006140097975731
+Playoff / play-in game,is_playoffs,context,0.049210045486688614
+Games played this season,season_games_prior,workload,0.04786058887839317
+Days since last injury,days_since_last_injury,history,0.04449538141489029
+Last 5 games: free-throw attempts,seq:FTA,workload_seq,0.04155151918530464
+Career games (in data),games_prior_total,workload,0.04081151261925697
+Minutes played this season,season_min_prior,workload,0.03784067928791046
+Last 5 games: rebounds,seq:REB,workload_seq,0.035520944744348526
+Age,age,bio,0.0313553549349308
+"Games, last 7 days",games_7d,workload,0.030688321217894554
+Weight (lb),weight_lb,bio,0.029381530359387398
+Last 5 games: team rest days,seq:days_rest,schedule,0.029279248788952827
+Acute:chronic minutes ratio,acwr_min,workload,0.027181943878531456
+Last 5 games: time-zone changes,seq:abs_tz_shift_h,travel,0.02629217319190502
+Last 5 games: playoff games,seq:is_playoffs,context,0.024734225124120712
+"Team travel, last 14 days (km)",km_last_14d,travel,0.02472081407904625
+"Usage per minute, last 28 days",usage_per_min_28d,workload,0.024684151634573936
+"Games, last 14 days",games_14d,workload,0.023556970059871674
+Early reporting era (2016-18),early_era,context,0.02207484282553196
+"Possessions used, last 28 days",poss_28d,workload,0.019689464941620827
+Time-zone change (h),abs_tz_shift_h,travel,0.019559044390916824
+Last 5 games: shot attempts,seq:FGA,workload_seq,0.018826739862561226
+Last 5 games: days between games,seq:gap_days,schedule,0.018383052200078964
+Acute:chronic minutes ratio (missing),acwr_min_missing,workload,0.016530219465494156
+Minutes in previous game,prev_game_min,workload,0.014678186737000942
+Team days of rest,days_rest,schedule,0.012830549851059914
+Recent minutes per game (~7 games),ewma_min_short,workload,0.01239092368632555
+"Team games missed, last 14 days",missed_team_games_14d,workload,0.011815173551440239
+"Team travel, last 7 days (km)",km_last_7d,travel,0.011322962120175362
+Last 5 games: back-to-backs,seq:back_to_back,schedule,0.011238410137593746
+Back-to-back tonight,back_to_back,schedule,0.010094487108290195
+Last 5 games: home/away,seq:is_home,schedule,0.00991852581501007
+Last 5 games: travel,seq:travel_km,travel,0.008791659958660603
+Years since draft,years_since_draft,bio,0.008321935310959816
+"Minutes, last 7 days",min_7d,workload,0.00823194906115532
+"Possessions used, last 7 days",poss_7d,workload,0.008121472783386707
+"Team games, last 7 days",team_games_last_7d,schedule,0.007690206170082092
+"Minutes, last 28 days",min_28d,workload,0.0075989821925759315
+"Minutes, last 14 days",min_14d,workload,0.0070641180500388145
+Last 5 games: timing of those games,seq:days_before,schedule,0.006953631993383169
+"Back-to-backs played, last 14 days",b2b_apps_14d,workload,0.006680693011730909
+Workload spike (short/long minutes) (missing),ewma_ratio_min_missing,workload,0.00598044553771615
+Travel to this game (km),travel_km,travel,0.005254747346043587
+"Time-zone shift, signed (h)",tz_shift_h,travel,0.004823402967303991
+"Usage per minute, last 28 days (missing)",usage_per_min_28d_missing,workload,0.004697079304605722
+"Games, last 3 days",games_3d,workload,0.004602034110575914
+Minutes per game (~28 games) (missing),ewma_min_long_missing,workload,0.004591705743223429
+Workload spike (short/long minutes),ewma_ratio_min,workload,0.0039993529208004475
+Team days of rest (missing),days_rest_missing,schedule,0.003818850964307785
+Home game,is_home,schedule,0.003617931390181184
+Neutral-site game,is_neutral,schedule,0.003324178047478199
+Recent minutes per game (~7 games) (missing),ewma_min_short_missing,workload,0.0032884939573705196
+Days since previous game,days_since_prev_game,workload,0.0025742482393980026

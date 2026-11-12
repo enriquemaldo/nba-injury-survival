@@ -2,7 +2,8 @@
 
 Trained on the training seasons, evaluated on the VALIDATION season (2022-23).
 The test season (2023-24) stays sealed until model selection is finished
-(proposal section 6); pass --test only at the very end of the project.
+(proposal section 6). The final test evaluation is src.final.evaluate (models
+refit on training + validation seasons); this script never touches the test season.
 
     Logistic / XGBoost: classify "target injury within 14 days" (CLASSIF_DAYS),
         trained on landmarks whose 14-day status is known.
@@ -19,7 +20,6 @@ All preprocessing (imputation medians, clipping bounds, scaling) is learned on
 the training rows only. Hyperparameters are fixed in advance (no tuning).
 
 Usage:  python -m src.models.baselines            (validation only)
-        python -m src.models.baselines --test     (final evaluation - only at the end!)
 Writes: data/processed/models/  (report, figures, validation predictions)
 """
 import argparse
@@ -248,8 +248,10 @@ def tie_fraction(df):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--test", action="store_true", help="also evaluate the sealed test season (final only)")
+    ap.add_argument("--test", action="store_true", help=argparse.SUPPRESS)
     args = ap.parse_args()
+    if args.test:
+        raise SystemExit("The final test evaluation is: python -m src.final.evaluate")
 
     lm = pd.read_csv(LANDMARKS, parse_dates=["GAME_DATE"])
     feats = model_features(lm)
@@ -349,13 +351,6 @@ def main():
           "- Logistic/GBM are trained only on landmarks with a known 14-day outcome, so late-season "
           "landmarks (cut off by season end) are underrepresented in their training data.",
           "- Hazard ratios describe associations in this observational data, not causes."]
-
-    if args.test:
-        test = lm[lm.split == "test"].reset_index(drop=True)
-        tres = evaluate(test, predict(main_models, test, main_feats), boot=True)
-        tres.to_csv(OUT / "test_results.csv", index=False)
-        md += ["", "## FINAL TEST SEASON (2023-24)\n", _md(tres)]
-        print("TEST SEASON EVALUATED - do not change models after this.")
 
     (OUT / "baselines_report.md").write_text("\n".join(md), encoding="utf-8")
     print("\n".join(md))

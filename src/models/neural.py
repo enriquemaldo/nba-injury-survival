@@ -71,16 +71,20 @@ def static_columns(data, drop):
     return np.flatnonzero(keep)
 
 
-def splits(data, seed, inner_frac=CONFIG["inner_frac"]):
-    """Training rows (training seasons) split by PLAYER into fit / early-stopping sets."""
-    train = np.isin(data["season"], TRAIN_SEASONS)
+def splits(data, seed, inner_frac=CONFIG["inner_frac"], train_seasons=TRAIN_SEASONS, eval_mask=None):
+    """Training rows split by PLAYER into fit / early-stopping sets, plus the rows to score.
+    Defaults: training seasons, scored on the validation season. The final evaluation
+    (src.final.evaluate) passes train + validation seasons and the test rows."""
+    train = np.isin(data["season"], train_seasons)
     players = np.unique(data["player_id"][train])
     rng = np.random.default_rng(seed)
     inner_players = rng.choice(players, int(len(players) * inner_frac), replace=False)
     inner = train & np.isin(data["player_id"], inner_players)
     fit = train & ~inner
-    val = data["split"] == "val"
-    return np.flatnonzero(fit), np.flatnonzero(inner), np.flatnonzero(val)
+    ev = (data["split"] == "val") if eval_mask is None else np.asarray(eval_mask, bool)
+    if (ev & train).any():
+        raise ValueError("rows to score overlap the training seasons")
+    return np.flatnonzero(fit), np.flatnonzero(inner), np.flatnonzero(ev)
 
 
 def breslow_cumhaz(eta, time, event, h):
@@ -203,13 +207,14 @@ def predict(model, batcher, rows, bs=8192):
     return np.concatenate(out) if out else np.zeros(0)
 
 
-def train_one(data, run, seed, device, smoke=False, log=print):
+def train_one(data, run, seed, device, smoke=False, log=print, train_seasons=TRAIN_SEASONS, eval_mask=None,
+              save_dir=None):
     torch = _torch()
     torch.manual_seed(seed)
     np.random.seed(seed)
     spec = RUNS[run]
     cols = static_columns(data, spec["drop"])
-    fit, inner, val = splits(data, seed)
+    fit, inner, val = splits(data, seed, train_seasons=train_seasons, eval_mask=eval_mask)
     if smoke:
         rng = np.random.default_rng(seed)
         fit, inner, val = (rng.choice(a, min(len(a), n), replace=False) for a, n in ((fit, 20000), (inner, 4000), (val, 4000)))
@@ -253,10 +258,11 @@ def train_one(data, run, seed, device, smoke=False, log=print):
     eta_val = predict(model, batcher, val)
     prob = 1 - np.exp(-H0 * np.exp(eta_val))
     res = evaluate(data["time"][val], data["event"][val], eta_val, prob)
-    res.update(run=run, seed=seed, epochs=ep + 1, inner_c=best, n_static=len(cols), n_seq=spec["n_seq"])
+    res.update(run=run, seed=seed, epochs=ep + 1, inner_c=best, n_static=len(cols), n_seq=spec["n_seq"], H0=float(H0))
     if not smoke:
         torch.save({"state_dict": model.state_dict(), "run": run, "seed": seed, "cols": cols.tolist(),
-                    "config": CONFIG, "spec": spec}, OUT / "models" / f"{run}_s{seed}.pt")
+                    "config": CONFIG, "spec": spec, "H0": float(H0), "train_seasons": list(train_seasons)},
+                   (save_dir or OUT / "models") / f"{run}_s{seed}.pt")
     return res, val, eta_val, prob
 
 

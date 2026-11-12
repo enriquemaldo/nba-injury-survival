@@ -8,8 +8,8 @@ game, schedule and injury data (Transformer + DeepSurv, SHAP explanations).
 **Status.** Phase 1 (injury labels, feasibility, travel features), Phase 2
 (landmark survival dataset, workload features, baseline models) and Phase 3
 (within-player timing analysis, ablations, DeepSurv, Transformer + DeepSurv)
-are complete.
-Models are evaluated on the validation season only; the test season is untouched.
+are complete. Phase 4 adds the one-time test-season evaluation, SHAP
+explanations and the Streamlit dashboard.
 
 ```
 src/
@@ -33,12 +33,18 @@ src/
   sequence/build.py          previous-20-game sequences for the Transformer
   models/neural.py           DeepSurv and Transformer + DeepSurv (PyTorch)
   models/compare.py          all models compared + Update 3 evidence pack
+  final/evaluate.py          ONE-TIME test-season evaluation (models refit on train + val)
+  explain/shap_values.py     SHAP: exact for Cox, expected gradients for the Transformer
+  explain/labels.py          readable names for every model input
+  dashboard/prepare.py       data for the dashboard
+app.py                       Streamlit dashboard (streamlit run app.py)
   feasibility.py             per-season event counts and summary report
   evidence.py                figures, PDF summary, label-audit sheet
 tests/                       offline tests (labels, travel, Cox model, metrics, leakage)
 reports/update1/             Update 1 reports, figures and label-audit results
 reports/update2/             Update 2: survival dataset report and baseline results
 reports/update3/             Update 3: neural models, timing analysis, ablations
+reports/update4/             Update 4: final test evaluation and SHAP explanations
 reference/arenas.csv         season-specific home arenas (hand-verified)
 reference/neutral_sites.csv  bubble, international and NBA Cup Las Vegas games
 ```
@@ -268,6 +274,42 @@ All baselines and neural models on the validation season, with paired
 player-bootstrap CIs against the Cox baseline, the DeepSurv ablations, and
 `evidence_summary.pdf`. Outputs in `data/processed/update3/`.
 
+### 14. Final evaluation on the test season (run once)
+
+```bash
+python -m src.final.evaluate
+```
+
+Fixed in Update 3, before the test data were used: the primary comparison is
+Cox vs. Transformer + DeepSurv (5 games), C-index on 2023-24 with a paired
+player-bootstrap 95% CI. Every model is refit on 2016-17 to 2022-23 with the
+settings already used (no tuning), then scored once on 2023-24 and on the
+supplementary first half of 2024-25. The script refuses to run a second time.
+Outputs (report, predictions, figures, final models) in `data/processed/final/`.
+
+### 15. SHAP explanations
+
+```bash
+python -m src.explain.shap_values
+```
+
+Explains every held-out prediction. Cox: exact SHAP (linear log-hazard).
+Transformer: expected gradients (SHAP's GradientExplainer method) over the
+static features, the 5 previous games and their timing, averaged over the 3
+seeds; an additivity check is reported. Summaries by feature family, by
+previous game, and dependence plots for minutes and injury history.
+Outputs in `data/processed/explain/`.
+
+### 16. Dashboard
+
+```bash
+python -m src.dashboard.prepare
+streamlit run app.py
+```
+
+Player view (14-day risk across the season, SHAP drivers of each prediction,
+previous games, what happened next), team game-night view, and model results.
+
 ---
 
 ## Label definitions
@@ -303,7 +345,5 @@ model, a season-stratified Cox refit, and a sensitivity analysis trained on
 
 ## Next steps
 
-- SHAP attributions for the Cox and Transformer models (temporal heatmaps)
-- Final model choice, then a single evaluation on the sealed test season
-- Streamlit dashboard
+- Final report
 - Supplementary labels for 2024-26 from official NBA injury reports
