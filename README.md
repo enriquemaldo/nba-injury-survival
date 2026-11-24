@@ -34,7 +34,10 @@ src/
   models/neural.py           DeepSurv and Transformer + DeepSurv (PyTorch)
   models/compare.py          all models compared + Update 3 evidence pack
   final/evaluate.py          ONE-TIME test-season evaluation (models refit on train + val)
+  final/event_metrics.py     PR-AUC, precision, recall, F2 from the locked predictions
+  final/sensitivity.py       sensitivity analyses of the final pipeline
   explain/shap_values.py     SHAP: exact for Cox, expected gradients for the Transformer
+  explain/temporal.py        temporal attribution: previous games x per-game inputs
   explain/labels.py          readable names for every model input
   dashboard/prepare.py       data for the dashboard
 app.py                       Streamlit dashboard (streamlit run app.py)
@@ -308,7 +311,23 @@ streamlit run app.py
 ```
 
 Player view (14-day risk across the season, SHAP drivers of each prediction,
-previous games, what happened next), team game-night view, and model results.
+temporal attribution over the last 5 games, previous games, what happened next),
+team game-night view, and model results.
+
+### 17. Temporal attribution, event metrics and sensitivity analyses
+
+```bash
+python -m src.explain.temporal        # previous games x per-game inputs (from the SHAP values)
+python -m src.final.event_metrics     # PR-AUC, precision, recall, F2 at 14 days
+python -m src.final.sensitivity       # one-change-at-a-time variants (about 20-30 min)
+```
+
+None of these change the final models. Event metrics are computed from the
+locked test predictions, flagging a fixed share of player-games (top 5/10/20%)
+instead of a tuned threshold. Sensitivity variants (without 2019-20 and 2020-21,
+alternative workload windows, smaller and larger Transformers, 20 games) are
+refit like the final models and compared with them using paired 95% CIs.
+Outputs in `data/processed/explain/` and `data/processed/final/`.
 
 ---
 

@@ -130,6 +130,18 @@ def main():
     drv = drivers(shap, score, prev, n_seq)
     drv.to_csv(OUT / "drivers.csv.gz", index=False)
 
+    # ---- temporal attribution: previous games x per-game inputs, for each prediction ----
+    from src.sequence.build import OUT as SEQ
+    seq_idx = np.load(SEQ)["seq_idx"][lm_rows][:, -n_seq:]             # oldest -> newest
+    np.savez_compressed(OUT / "seq_shap.npz", phi=shap["tf_seq"].astype(np.float16),
+                        names=shap["tf_seq_names"])
+    mu = gl.drop_duplicates(["PLAYER_ID", "GAME_ID"]).set_index(["PLAYER_ID", "GAME_ID"]).MATCHUP
+    matchup = mu.reindex(pd.MultiIndex.from_frame(g[["PLAYER_ID", "GAME_ID"]])).to_numpy()   # g's row order
+    r, k = np.nonzero(seq_idx >= 0)
+    prev_games = pd.DataFrame({"row": r, "pos": k, "GAME_DATE": g.GAME_DATE.to_numpy()[seq_idx[r, k]],
+                               "MATCHUP": matchup[seq_idx[r, k]]})
+    prev_games.to_csv(OUT / "seq_games.csv.gz", index=False)
+
     # ---- game log for the "previous games" table -----------------------------------
     players = games.PLAYER_ID.unique()
     start = games.GAME_DATE.min() - pd.Timedelta(days=60)

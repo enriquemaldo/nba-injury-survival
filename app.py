@@ -35,7 +35,12 @@ def load():
     drv["shap"] = drv.shap.astype(float)
     log = pd.read_csv(DATA / "gamelog.csv.gz", parse_dates=["GAME_DATE"])
     inj = pd.read_csv(DATA / "injuries.csv", parse_dates=["injury_date"])
-    return games, drv, log, inj
+    seq = None
+    if (DATA / "seq_shap.npz").exists() and (DATA / "seq_games.csv.gz").exists():
+        z = np.load(DATA / "seq_shap.npz")
+        seq = {"phi": z["phi"], "names": [str(n) for n in z["names"]],
+               "games": pd.read_csv(DATA / "seq_games.csv.gz", parse_dates=["GAME_DATE"])}
+    return games, drv, log, inj, seq
 
 
 def ordinal(n):
@@ -111,8 +116,64 @@ def driver_chart(d):
     return fig
 
 
+SEQ_PLAIN = {"MIN": "Minutes", "poss": "Possessions used", "FGA": "Shot attempts", "FTA": "Free-throw attempts",
+             "REB": "Rebounds", "PF": "Fouls", "days_rest": "Team rest days", "back_to_back": "Back-to-back",
+             "travel_km": "Travel distance", "abs_tz_shift_h": "Time-zone change", "is_home": "Home / away",
+             "is_playoffs": "Playoff game", "gap_days": "Days since previous game",
+             "days_before": "How long ago the game was"}
+
+
+def temporal_chart(phi, names, col_labels):
+    """Heatmap: per-game inputs (rows) x previous games (columns, oldest -> newest), SHAP in log-hazard."""
+    phi = np.asarray(phi, float)                                   # [games, inputs]
+    order = np.argsort(-np.abs(phi).sum(0))
+    m = phi[:, order].T
+    lab = [SEQ_PLAIN.get(names[j], names[j]) for j in order]
+    lim = max(float(np.abs(m).max()), np.log(1.15))   # fixed scale: full color = ×1.15 (or the largest cell)
+    fig, ax = plt.subplots(figsize=(11, 0.36 * len(lab) + 1.3), dpi=150)
+    from matplotlib.colors import TwoSlopeNorm
+    ax.imshow(m, aspect="auto", cmap="RdBu_r", norm=TwoSlopeNorm(0, -lim, lim))
+    for i in range(m.shape[0]):
+        for j in range(m.shape[1]):
+            if abs(m[i, j]) >= 0.015:
+                ax.text(j, i, f"×{np.exp(m[i, j]):.2f}", ha="center", va="center", fontsize=7.5,
+                        color="white" if abs(m[i, j]) > 0.55 * lim else "#1a1a1a")
+    ax.set_xticks(range(m.shape[1]), col_labels, fontsize=8.5)
+    ax.set_yticks(range(len(lab)), lab, fontsize=8.5)
+    ax.tick_params(colors=TXT, length=0)
+    ax.xaxis.tick_top()
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+    fig.patch.set_alpha(0)
+    fig.tight_layout()
+    return fig
+
+
+def temporal_section(seq, r):
+    if seq is None:
+        return
+    phi = seq["phi"][int(r.row)].astype(float)                     # [games oldest -> newest, inputs]
+    pg = seq["games"][seq["games"].row == r.row].set_index("pos")
+    n = phi.shape[0]
+    cols = []
+    for k in range(n):
+        if k in pg.index:
+            gm = pg.loc[k]
+            cols.append(f"{gm.GAME_DATE:%b %d}\n{gm.MATCHUP if isinstance(gm.MATCHUP, str) else ''}")
+        else:
+            cols.append("no game\n(not played)")
+    st.subheader("How each previous game contributed")
+    st.caption("Temporal SHAP attribution of the Transformer + DeepSurv prediction: each cell is how much one "
+               "statistic from one of the last 5 games moved the risk (red raises it, blue lowers it; "
+               "×1.10 = hazard multiplied by 1.10). Oldest game on the left, most recent on the right. "
+               "The color scale is the same for every player (full color = ×1.15), so pale cells are small effects.")
+    fig = temporal_chart(phi, seq["names"], cols)
+    st.pyplot(fig, use_container_width=True)
+    plt.close(fig)
+
+
 # ---------------------------------------------------------------- pages -----
-def player_page(games, drv, log, inj):
+def player_page(games, drv, log, inj, seq=None):
     c1, c2, c3 = st.columns([1, 1, 2])
     season = c1.selectbox("Season", sorted(games.SEASON.unique()), format_func=lambda s: SEASON_LABEL.get(s, s))
     g = games[games.SEASON == season]
@@ -181,6 +242,8 @@ def player_page(games, drv, log, inj):
             else:
                 why = "" if n >= 30 else " (follow-up ended early: season over, another injury, or end of the data)"
                 st.success(f"No target injury in the next {n} day{'s' if n != 1 else ''}{why}")
+
+    temporal_section(seq, r)
 
 
 def team_page(games, drv):
@@ -448,10 +511,10 @@ def main():
     if not (DATA / "games.csv.gz").exists():
         st.error("Dashboard data not found. Run:  python -m src.dashboard.prepare")
         st.stop()
-    games, drv, log, inj = load()
+    games, drv, log, inj, seq = load()
     t1, t2, t3 = st.tabs(["Player", "Team game night", "Model"])
     with t1:
-        player_page(games, drv, log, inj)
+        player_page(games, drv, log, inj, seq)
     with t2:
         team_page(games, drv)
     with t3:
