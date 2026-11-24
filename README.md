@@ -5,11 +5,19 @@ ECE 5904 · Enrique Maldonado · Virginia Tech
 Pipeline for estimating NBA non-contact soft-tissue injury hazard from public
 game, schedule and injury data (Transformer + DeepSurv, SHAP explanations).
 
-**Status.** Phase 1 (injury labels, feasibility, travel features), Phase 2
-(landmark survival dataset, workload features, baseline models) and Phase 3
-(within-player timing analysis, ablations, DeepSurv, Transformer + DeepSurv)
-are complete. Phase 4 adds the one-time test-season evaluation, SHAP
-explanations and the Streamlit dashboard.
+**Status.** All five phases are complete: Phase 1 (injury labels, feasibility,
+travel features), Phase 2 (landmark survival dataset, workload features,
+baseline models), Phase 3 (within-player timing analysis, ablations, DeepSurv,
+Transformer + DeepSurv), Phase 4 (one-time test-season evaluation, SHAP
+explanations, Streamlit dashboard) and Phase 5 (temporal attribution,
+event-prediction metrics, sensitivity analyses). The final report and
+presentation are in progress.
+
+**Main result.** On the sealed 2023-24 test season, the pre-specified
+Transformer + DeepSurv (5 games) matched the Cox baseline (C-index 0.753 vs.
+0.752; paired 95% CI for the difference -0.008 to +0.012). Injury history
+drives most of the predictable risk; recent minutes add a smaller timing
+signal, and travel and schedule contribute little.
 
 ```
 src/
@@ -364,5 +372,5 @@ model, a season-stratified Cox refit, and a sensitivity analysis trained on
 
 ## Next steps
 
-- Final report
+- Final report (IEEE format) and presentation
 - Supplementary labels for 2024-26 from official NBA injury reports
